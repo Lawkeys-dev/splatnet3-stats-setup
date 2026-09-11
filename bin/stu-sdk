@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Android SDK manager helpers (sdkmanager / avdmanager) with the mise-provided JDK.
+#   stu-sdk sdkmanager --list
+#   stu-sdk avdmanager list avd
+set -euo pipefail
+# sdkmanager/avdmanager need a JDK; use $JAVA_HOME, else the first one mise installed
+if [ -z "${JAVA_HOME:-}" ]; then
+	JAVA_HOME="$(find "$HOME/.local/share/mise/installs/java" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | head -1)"
+fi
+export JAVA_HOME
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+exec "$@"

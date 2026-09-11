@@ -1,0 +1,13 @@
+[Unit]
+Description=Hourly SplatNet3 token refresh
+Documentation=https://github.com/strohitv/splatnet3-token-util
+
+[Timer]
+# first run a few minutes after login, then once an hour
+OnStartupSec=3min
+OnUnitActiveSec=1h
+AccuracySec=1min
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+{
+    "acc_loc": "{APPLANGUAGE}|{NACOUNTRY}",
+    "api_key": "PUT_YOUR_STATINK_API_TOKEN_HERE",
+    "bullettoken": "{BULLETTOKEN}",
+    "f_gen": "DUMMY_VALUE",
+    "gtoken": "{GTOKEN}",
+    "session_token": "skip"
+}

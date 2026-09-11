@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# s3s wrapper: runs s3s and refreshes the SplatNet 3 tokens only when they are actually dead.
+# On RC 42 it first tries to mint a new bulletToken from the stored gtoken (one HTTPS
+# call, no emulator); the emulator extraction only runs when the gtoken is gone too.
+#   stu-s3s --getseed   -> export gear file for Lean's Gear Seed Checker
+#   stu-s3s -r          -> upload recent battles to stat.ink (needs api_key in config/template.txt)
+#   stu-s3s -r -M       -> upload + monitoring mode
+#   stu-s3s -r -M -im   -> same, but token extraction runs windowed/interactive
+# The upstream loop without the cheap tier is still available: `stu-s3s-upstream`.
+set -euo pipefail
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+# resolve the checkout from this script's own location (works through the ~/.local/bin symlink)
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+cd "$ROOT/splatnet3-token-util"
+exec "$ROOT/.venv/bin/python" "$ROOT/bin/s3s-loop.py" "$@"

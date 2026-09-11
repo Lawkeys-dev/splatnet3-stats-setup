@@ -1,0 +1,17 @@
+[Unit]
+Description=Refresh SplatNet3 tokens (splatnet3-token-util, headless)
+Documentation=https://github.com/strohitv/splatnet3-token-util
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Work/splatnet3/bin/stu-headless
+# the run itself is capped at 50 min by max_run_duration_minutes in config-headless.json
+TimeoutStartSec=3900
+# make sure no stale emulator is left behind if we are killed
+ExecStopPost=-/bin/sh -c 'ADB=%h/Android/Sdk/platform-tools/adb; $ADB devices | grep -q emulator- && $ADB emu kill || true'
+Nice=5
+
+[Install]
+WantedBy=default.target

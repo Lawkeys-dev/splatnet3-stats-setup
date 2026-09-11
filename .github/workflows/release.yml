@@ -1,0 +1,36 @@
+# On a v* tag: builds one archive per OS from the tagged tree and publishes both
+# as a GitHub release. Each archive unpacks to splatnet3/ and holds only what that
+# OS needs; a new file ships in both unless it is excluded below.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the archives
+        # .gitattributes is read from the tagged tree even though it is not shipped,
+        # so the .cmd/.ps1 files in the zip keep their CRLF line endings
+        run: |
+          git archive --format=tar.gz --prefix=splatnet3/ -o splatnet3-stats-setup-linux.tar.gz HEAD -- . \
+            ':!.github' ':!.gitattributes' ':!.gitignore' \
+            ':!install.ps1' ':!bin/*.cmd' ':!bin/supervise.pyw' ':!config/windows'
+          git archive --format=zip --prefix=splatnet3/ -o splatnet3-stats-setup-windows.zip HEAD -- . \
+            ':!.github' ':!.gitattributes' ':!.gitignore' \
+            ':!install.sh' ':!systemd' ':!config/linux' \
+            ':!bin/stu' ':!bin/stu-headless' ':!bin/stu-s3s' ':!bin/stu-s3s-upstream' ':!bin/stu-sdk'
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          splatnet3-stats-setup-linux.tar.gz splatnet3-stats-setup-windows.zip

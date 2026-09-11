@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# splatnet3-token-util token refresh, no emulator window. Used by the systemd timer.
+# Writes fresh tokens to ~/Work/splatnet3/splatnet3-token-util/config.txt and
+# copies them into the s3s directory so s3s always has valid tokens.
+set -euo pipefail
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+# resolve the checkout from this script's own location (works through the ~/.local/bin symlink)
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+cd "$ROOT/splatnet3-token-util"
+"$ROOT/.venv/bin/python" main.py --config ./config/config-headless.json --disable-update-check "$@"
+cp -f config.txt "$ROOT/s3s/config.txt"
+echo "tokens refreshed -> $ROOT/splatnet3-token-util/config.txt and $ROOT/s3s/config.txt"

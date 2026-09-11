@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# splatnet3-token-util wrapper (windowed / interactive).
+# Passes all arguments through to main.py.
+#   stu                 -> extract tokens (emulator window visible)
+#   stu -im             -> interactive mode (press Enter when SplatNet3 is loaded)
+#   stu --emu           -> just boot the emulator (for manual setup/login)
+#   stu --adb="devices" -> run an adb command against the emulator
+set -euo pipefail
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+# resolve the checkout from this script's own location (works through the ~/.local/bin symlink)
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+cd "$ROOT/splatnet3-token-util"
+exec "$ROOT/.venv/bin/python" main.py "$@"

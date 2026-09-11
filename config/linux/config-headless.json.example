@@ -1,0 +1,38 @@
+{
+    "debug": false,
+    "emulator_config": {
+        "adb_path": "__HOME__/Android/Sdk/platform-tools/adb",
+        "avd_name": "NSA",
+        "emulator_boot_args": "-avd {AVD_NAME} -feature -Vulkan -no-snapshot-load -no-boot-anim -no-window -no-audio",
+        "emulator_path": "__HOME__/Android/Sdk/emulator/emulator",
+        "snapshot_dir": "__HOME__/.android/avd/{AVD_NAME}.avd/snapshots",
+        "snapshot_name": "splatnet3-opened"
+    },
+    "run_config": {
+        "boot_script_path": "./script-examples/config/pixel_4_api_30_play_store/boot.txt",
+        "cleanup_script_path": "./script-examples/config/pixel_4_api_30_play_store/cleanup.txt",
+        "example_scripts_directory": "pixel_4_api_30_play_store",
+        "log_stats_csv": false,
+        "max_attempt_duration_seconds": 180,
+        "max_run_duration_minutes": 50,
+        "stats_csv_path": "./stats.csv",
+        "target_path": "./config.txt",
+        "template_path": "./config/template.txt",
+        "use_example_scripts": true
+    },
+    "token_config": {
+        "extract_bullet_token": true,
+        "extract_g_token": true,
+        "extract_session_token": false,
+        "validate_bullet_token": true,
+        "validate_g_token": true,
+        "validate_session_token": false,
+        "validate_splat3_homepage": true,
+        "validate_target_file_as_json": true
+    },
+    "update_config": {
+        "check_for_update": true,
+        "git_command": "git",
+        "pip_command": "__ROOT__/.venv/bin/pip"
+    }
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=s3s stat.ink uploader (monitoring mode, auto token refresh)
+Documentation=https://github.com/frozenpandaman/s3s
+After=network-online.target
+Wants=network-online.target
+# the hourly token timer boots its own emulator; splatnet3-token-util cannot cope
+# with two emulators at once, so the two must never run together
+Conflicts=splatnet3-tokens.service
+# don't let a hard failure loop hot
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# -r  upload anything stat.ink is missing, then
+# -M  poll SplatNet 3 every 300s and upload new battles/jobs as they finish
+ExecStart=%h/Work/splatnet3/bin/stu-s3s -r -M
+# s3s calls input() at startup if a newer version exists upstream. With no stdin that
+# raises EOFError instead of hanging forever; the restart then git-pulls (s3s_update)
+# and the service heals itself.
+StandardInput=null
+Restart=always
+RestartSec=60s
+ExecStopPost=-/bin/sh -c 'ADB=%h/Android/Sdk/platform-tools/adb; $ADB devices | grep -q emulator- && $ADB emu kill || true'
+Nice=5
+
+[Install]
+WantedBy=default.target
