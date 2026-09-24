@@ -21,10 +21,10 @@ jobs:
         # so the .cmd/.ps1 files in the zip keep their CRLF line endings
         run: |
           git archive --format=tar.gz --prefix=splatnet3/ -o splatnet3-stats-setup-linux.tar.gz HEAD -- . \
-            ':!.github' ':!.gitattributes' ':!.gitignore' \
+            ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
             ':!install.ps1' ':!bin/*.cmd' ':!bin/supervise.pyw' ':!config/windows'
           git archive --format=zip --prefix=splatnet3/ -o splatnet3-stats-setup-windows.zip HEAD -- . \
-            ':!.github' ':!.gitattributes' ':!.gitignore' \
+            ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
             ':!install.sh' ':!systemd' ':!config/linux' \
             ':!bin/stu' ':!bin/stu-headless' ':!bin/stu-s3s' ':!bin/stu-s3s-upstream' ':!bin/stu-sdk'
 

@@ -46,7 +46,7 @@ def log(msg=''):
 
 def load_run_config():
 	if not os.path.exists(RUN_CONFIG):
-		log('ERROR: {} does not exist. Run run_s3s.py once to generate it.'.format(RUN_CONFIG))
+		log('ERROR: {} does not exist. Run install.sh (install.ps1 on Windows) to generate it.'.format(RUN_CONFIG))
 		sys.exit(3)
 
 	with open(RUN_CONFIG, 'r') as f:

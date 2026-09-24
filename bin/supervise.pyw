@@ -9,7 +9,8 @@ wrapper what the Linux setup gets from systemd:
     EOFError instead of hanging forever
   - the journal: stdout/stderr go to a timestamped log file, rotated at 5 MB.
     s3s redraws a countdown with carriage returns every second; only what a
-    terminal would end up showing is kept
+    terminal would end up showing is kept. The wrapper's exit is what counts,
+    not the end of its output: the adb server it may leave running holds that open
   - KillMode=control-group: the tree runs in a job object that is killed when
     this process dies, so Stop-ScheduledTask does not leave an emulator behind
   - Restart=always, RestartSec=60, StartLimitBurst=5 per 600 s (with --restart)
@@ -23,6 +24,7 @@ import ctypes
 import os
 import subprocess
 import sys
+import threading
 import time
 import traceback
 
@@ -30,6 +32,8 @@ RESTART_SEC = 60
 START_LIMIT_INTERVAL_SEC = 600
 START_LIMIT_BURST = 5
 MAX_LOG_BYTES = 5 * 1024 * 1024
+# how long to keep reading output after the wrapper exits (see run_once)
+OUTPUT_GRACE_SEC = 5
 
 
 class Log:
@@ -40,12 +44,14 @@ class Log:
 		os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 		self.file = open(path, 'a', encoding='utf-8')
 		self.rotate_at = MAX_LOG_BYTES
+		self.lock = threading.Lock()
 
 	def write(self, line):
-		self.file.write('{} {}\n'.format(time.strftime('%Y-%m-%d %H:%M:%S'), line))
-		self.file.flush()
-		if self.file.tell() >= self.rotate_at:
-			self.rotate()
+		with self.lock:  # the output pump and the supervisor both write
+			self.file.write('{} {}\n'.format(time.strftime('%Y-%m-%d %H:%M:%S'), line))
+			self.file.flush()
+			if self.file.tell() >= self.rotate_at:
+				self.rotate()
 
 	def rotate(self):
 		self.file.close()
@@ -161,8 +167,14 @@ def run_once(command, log, job):
 		except OSError as e:
 			log.write('could not put the process in the job object ({}); '
 					  'stopping the task may leave the emulator running'.format(e))
-	pump(proc.stdout, log)
+	pumper = threading.Thread(target=pump, args=(proc.stdout, log), daemon=True)
+	pumper.start()
 	rc = proc.wait()
+	# a process the wrapper leaves behind (the adb server) inherits the pipe and keeps it
+	# open: waiting for EOF would never see the wrapper exit, so stop reading shortly after
+	pumper.join(OUTPUT_GRACE_SEC)
+	if not pumper.is_alive():
+		proc.stdout.close()
 	log.write('exited with code {}'.format(rc))
 	return rc
 

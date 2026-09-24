@@ -5,6 +5,7 @@
 #   stu -im             -> interactive mode (press Enter when SplatNet3 is loaded)
 #   stu --emu           -> just boot the emulator (for manual setup/login)
 #   stu --adb="devices" -> run an adb command against the emulator
+# Tokens from a successful extraction are copied into the s3s directory as well.
 set -euo pipefail
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
@@ -12,4 +13,7 @@ export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 # resolve the checkout from this script's own location (works through the ~/.local/bin symlink)
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 cd "$ROOT/splatnet3-token-util"
-exec "$ROOT/.venv/bin/python" main.py "$@"
+"$ROOT/.venv/bin/python" main.py "$@"
+# only when this run wrote newer tokens (not after --emu, --adb, --help...), so that
+# a manual `stu -im` also unblocks the uploader
+cp -u config.txt "$ROOT/s3s/config.txt" 2>/dev/null || true

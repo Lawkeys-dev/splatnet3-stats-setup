@@ -182,7 +182,8 @@ if ($Venv) {
 	Say "shared venv -> $VenvDir"
 	if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw 'uv not found: https://docs.astral.sh/uv/' }
 	if (-not (Test-Path -LiteralPath $VenvDir)) { Invoke-Native uv @('venv', '--python', '3.12', $VenvDir) }
-	Invoke-Native uv @('pip', 'install', '--python', (Join-Path $VenvDir 'Scripts\python.exe'),
+	# pip too: a uv venv has none, and the configs' pip_command (stu's update, run_s3s.py) needs it
+	Invoke-Native uv @('pip', 'install', '--python', (Join-Path $VenvDir 'Scripts\python.exe'), 'pip',
 		'-r', (Join-Path $Stu 'requirements.txt'), '-r', (Join-Path $S3s 'requirements.txt'))
 }
 
@@ -201,7 +202,7 @@ Write-Host @"
 
  1. venv (skipped unless -Venv):
       uv venv --python 3.12 "$VenvDir"
-      uv pip install --python "$VenvDir\Scripts\python.exe" -r "$Stu\requirements.txt" -r "$S3s\requirements.txt"
+      uv pip install --python "$VenvDir\Scripts\python.exe" pip -r "$Stu\requirements.txt" -r "$S3s\requirements.txt"
 
  2. an AVD named NSA (Pixel 4, API 30, Google Play; see README), then log into the
     Nintendo Switch Online app inside it - from a new terminal, so bin\ is on PATH:

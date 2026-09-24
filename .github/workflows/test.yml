@@ -1,0 +1,72 @@
+# Installs the setup from the release archives on real Linux and Windows runners and checks
+# everything short of the emulator itself (a runner has no AVD and no Nintendo account).
+# The archive commands match release.yml.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: shellcheck
+        run: shellcheck install.sh bin/stu bin/stu-headless bin/stu-s3s bin/stu-s3s-upstream bin/stu-sdk tests/linux-setup.sh
+      - name: PowerShell scripts parse and are ASCII-only
+        shell: pwsh
+        run: |
+          foreach ($f in 'install.ps1', 'tests/windows-setup.ps1') {
+            $errors = $null
+            $tokens = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$tokens, [ref]$errors)
+            if ($errors) { $errors; throw "$f does not parse" }
+            if ([System.IO.File]::ReadAllBytes((Resolve-Path $f)) | Where-Object { $_ -gt 127 }) { throw "$f is not ASCII-only" }
+          }
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the Linux archive
+        run: |
+          git archive --format=tar.gz --prefix=splatnet3/ -o "$RUNNER_TEMP/splatnet3-stats-setup-linux.tar.gz" HEAD -- . \
+            ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
+            ':!install.ps1' ':!bin/*.cmd' ':!bin/supervise.pyw' ':!config/windows'
+      - name: Install and check
+        run: tests/linux-setup.sh "$RUNNER_TEMP/splatnet3-stats-setup-linux.tar.gz"
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the Windows archive
+        shell: bash
+        run: |
+          git archive --format=zip --prefix=splatnet3/ -o "$RUNNER_TEMP/splatnet3-stats-setup-windows.zip" HEAD -- . \
+            ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
+            ':!install.sh' ':!systemd' ':!config/linux' \
+            ':!bin/stu' ':!bin/stu-headless' ':!bin/stu-s3s' ':!bin/stu-s3s-upstream' ':!bin/stu-sdk'
+      - name: Install and check (Windows PowerShell 5.1, like the README)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows-setup.ps1 -Zip "$env:RUNNER_TEMP\splatnet3-stats-setup-windows.zip"

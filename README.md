@@ -109,7 +109,9 @@ cd ~/Work/splatnet3
 
 `install.sh` never overwrites an existing config unless you pass `--force`, and it is safe
 to re-run. It works from any directory, not just `~/Work/splatnet3` — the wrappers resolve
-the checkout from their own location and the units are rewritten to match.
+the checkout from their own location and the units are rewritten to match. If your SDK is
+not in `~/Android/Sdk`, export `ANDROID_HOME` before running it: the configs and the units
+then point at that SDK, and the units pass `ANDROID_HOME` on to the wrappers.
 
 Then:
 
@@ -117,7 +119,8 @@ Then:
 2. `stu --emu`, log into the Nintendo Switch Online app inside the emulator, open
    SplatNet 3 once, and update **Android System WebView** and **Chrome** from the Play
    Store (see the gotcha below)
-3. `stu -im` — first extraction, press Enter once SplatNet 3 has loaded
+3. `stu -im` — first extraction, press Enter once SplatNet 3 has loaded (the tokens are
+   copied into `s3s` too)
 4. `systemctl --user enable --now splatnet3-s3s.service`
 
 ### Windows
@@ -146,15 +149,17 @@ Then, **in a new terminal** (so `bin\` is on your PATH):
 2. `stu --emu`, log into the Nintendo Switch Online app inside the emulator, open
    SplatNet 3 once, and update **Android System WebView** and **Chrome** from the Play
    Store (see the gotcha below)
-3. `stu -im` — first extraction, press Enter once SplatNet 3 has loaded
+3. `stu -im` — first extraction, press Enter once SplatNet 3 has loaded (the tokens are
+   copied into `s3s` too)
 4. `Enable-ScheduledTask splatnet3-s3s; Start-ScheduledTask splatnet3-s3s`
 
 ### Updating
 
 Stop the uploader, extract the new release over the old folder (add `-Force` to
 `Expand-Archive` on Windows) or `git pull` in a clone, re-run the installer without
-`--force` / `-Force`, and start the uploader again (see [Automation](#automation)). Your
-configs, tokens, venv and the upstream clones are not in the archive, so they stay.
+`--force` / `-Force` but with `--venv` / `-Venv` (it adds new dependencies, and the `pip`
+that stu's own update needs), and start the uploader again (see [Automation](#automation)).
+Your configs, tokens, venv and the upstream clones are not in the archive, so they stay.
 
 ## Commands
 

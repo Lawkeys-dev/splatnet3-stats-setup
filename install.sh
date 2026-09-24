@@ -18,6 +18,10 @@ S3S="$ROOT/s3s"
 VENV="$ROOT/.venv"
 BIN_DIR="${HOME}/.local/bin"
 UNIT_DIR="${HOME}/.config/systemd/user"
+# Android SDK: ANDROID_HOME if set (the bin/ wrappers honour it too), else the Android Studio default
+DEFAULT_SDK="${HOME}/Android/Sdk"
+SDK="${ANDROID_HOME:-$DEFAULT_SDK}"
+SDK="${SDK%/}"
 
 FORCE=0
 MAKE_VENV=0
@@ -36,7 +40,7 @@ install_file() { # src dst
 		echo "   kept   $2 (exists; --force to overwrite)"
 		return
 	fi
-	sed -e "s|__ROOT__|${ROOT}|g" -e "s|__HOME__|${HOME}|g" "$1" > "$2"
+	sed -e "s|__ROOT__|${ROOT}|g" -e "s|__HOME__/Android/Sdk|${SDK}|g" -e "s|__HOME__|${HOME}|g" "$1" > "$2"
 	echo "   wrote  $2"
 }
 
@@ -62,13 +66,16 @@ done
 
 say "systemd user units -> $UNIT_DIR"
 mkdir -p "$UNIT_DIR"
-# the units address the checkout as %h/Work/splatnet3; point them at this one if it lives elsewhere
+# the units address the checkout as %h/Work/splatnet3 and the SDK as %h/Android/Sdk;
+# point them at this checkout / ANDROID_HOME if they live elsewhere
+unit_sed=(-e "")  # no-op, so sed always gets a script
+[ "$ROOT" = "$HOME/Work/splatnet3" ] || unit_sed+=(-e "s|%h/Work/splatnet3|${ROOT}|g")
+if [ "$SDK" != "$DEFAULT_SDK" ]; then
+	# systemd does not see the shell's ANDROID_HOME: hand it to the wrappers explicitly
+	unit_sed+=(-e "s|%h/Android/Sdk|${SDK}|g" -e "/^\[Service\]\$/a Environment=\"ANDROID_HOME=${SDK}\"")
+fi
 for unit in "$ROOT"/systemd/*.service "$ROOT"/systemd/*.timer; do
-	if [ "$ROOT" = "$HOME/Work/splatnet3" ]; then
-		cp "$unit" "$UNIT_DIR/"
-	else
-		sed "s|%h/Work/splatnet3|${ROOT}|g" "$unit" > "$UNIT_DIR/$(basename "$unit")"
-	fi
+	sed "${unit_sed[@]}" "$unit" > "$UNIT_DIR/$(basename "$unit")"
 	echo "   $(basename "$unit")"
 done
 systemctl --user daemon-reload 2>/dev/null || echo "   (no systemd user session - skipped daemon-reload)"
@@ -77,7 +84,8 @@ if [ "$MAKE_VENV" -eq 1 ]; then
 	say "shared venv -> $VENV"
 	command -v uv >/dev/null || { echo "uv not found: https://docs.astral.sh/uv/" >&2; exit 1; }
 	[ -d "$VENV" ] || uv venv --python 3.12 "$VENV"
-	uv pip install --python "$VENV/bin/python" -r "$STU/requirements.txt" -r "$S3S/requirements.txt"
+	# pip too: a uv venv has none, and the configs' pip_command (stu's update, run_s3s.py) needs it
+	uv pip install --python "$VENV/bin/python" pip -r "$STU/requirements.txt" -r "$S3S/requirements.txt"
 fi
 
 cat <<NEXT
@@ -86,7 +94,7 @@ cat <<NEXT
 
  1. venv (skipped unless --venv):
       uv venv --python 3.12 "$VENV"
-      uv pip install --python "$VENV/bin/python" -r "$STU/requirements.txt" -r "$S3S/requirements.txt"
+      uv pip install --python "$VENV/bin/python" pip -r "$STU/requirements.txt" -r "$S3S/requirements.txt"
 
  2. Android SDK + an AVD named NSA (Play Store image, see README), then log into
     the Nintendo Switch Online app inside it:
