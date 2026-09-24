@@ -338,7 +338,8 @@ these starts it:
 
 - *Actions → release → Run workflow* on GitHub, with the tag to publish: a new tag is
   created on the commit given there (by default the head of the branch picked), and an
-  existing one is released as is
+  existing one is released as is. GitHub only lets the workflow tag a commit whose
+  `.github/workflows` match the branch's; tag an older one with `git push` instead
 - creating the release in GitHub's web UI: the workflow then attaches the archives to it
 
 The notes list the commits since the previous tag. Running the workflow again on an

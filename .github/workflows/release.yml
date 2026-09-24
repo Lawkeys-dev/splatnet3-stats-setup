@@ -3,7 +3,9 @@
 # excluded below. Three ways in, all ending with the archives attached:
 #   - push a v* tag
 #   - Actions > release > Run workflow, with a tag: an existing tag is released as is,
-#     a new one is created on the given commit, or else on the branch picked there
+#     a new one is created on the given commit, or else on the branch picked there.
+#     GitHub refuses the tag when that commit's .github/workflows differ from the
+#     branch's: push such a tag from a git client instead
 #   - create the release in GitHub's web UI: its new tag triggers this, which then
 #     attaches the archives to that release and keeps the notes written there
 # The notes list the commits since the previous tag. Run the workflow again on an
@@ -19,7 +21,7 @@ on:
         description: 'Tag to release, e.g. v1.1.0 (created if it does not exist)'
         required: true
       commit:
-        description: 'Commit to create a new tag on (default: the head of the selected branch)'
+        description: 'Commit to create a new tag on (default: the head of the selected branch; its workflows must match the branch)'
         required: false
 
 permissions:
@@ -85,10 +87,10 @@ jobs:
             gh release upload "$TAG" "${assets[@]}" --clobber
             # a release created in the web UI keeps its own notes
             if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-              gh release edit "$TAG" --notes-file notes.md
+              gh release edit "$TAG" --title "$TAG" --notes-file notes.md
             fi
           elif [ -n "$NEW_TAG" ]; then
-            gh release create "$TAG" --target "$REF" --notes-file notes.md "${assets[@]}"
+            gh release create "$TAG" --target "$REF" --title "$TAG" --notes-file notes.md "${assets[@]}"
           else
-            gh release create "$TAG" --verify-tag --notes-file notes.md "${assets[@]}"
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${assets[@]}"
           fi
