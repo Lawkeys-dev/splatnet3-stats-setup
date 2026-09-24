@@ -327,12 +327,18 @@ failure; a correctly loaded main menu measures ~46 %.
 
 ## Releases
 
-Pushing a `v*` tag builds both archives and publishes the release
-(`.github/workflows/release.yml`):
+`.github/workflows/release.yml` builds both archives and publishes the release. Any of
+these starts it:
 
-```bash
-git tag v1.1.0 && git push origin v1.1.0
-```
+- pushing a `v*` tag:
+
+  ```bash
+  git tag -a v1.2.0 -m v1.2.0 && git push origin v1.2.0
+  ```
+
+- *Actions → release → Run workflow* on GitHub, with the tag to publish: a new tag is
+  created on the branch picked there, and an existing one is released as is
+- creating the release in GitHub's web UI: the workflow then attaches the archives to it
 
 ## Credits
 

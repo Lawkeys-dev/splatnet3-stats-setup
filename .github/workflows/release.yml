@@ -1,11 +1,21 @@
-# On a v* tag: builds one archive per OS from the tagged tree and publishes both
-# as a GitHub release. Each archive unpacks to splatnet3/ and holds only what that
-# OS needs; a new file ships in both unless it is excluded below.
+# Builds one archive per OS and publishes both as a GitHub release. Each archive unpacks
+# to splatnet3/ and holds only what that OS needs; a new file ships in both unless it is
+# excluded below. Three ways in, all ending with the archives attached:
+#   - push a v* tag
+#   - Actions > release > Run workflow, with a tag: an existing tag is released as is,
+#     a new one is created on the branch picked there
+#   - create the release in GitHub's web UI: its new tag triggers this, which then
+#     attaches the archives to that release
 name: release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release, e.g. v1.1.0 (created on the selected branch if it does not exist)'
+        required: true
 
 permissions:
   contents: write
@@ -13,17 +23,32 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # the tags, to release an existing one
+
+      - name: Pick the tree to release
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+(\.[0-9]+)*$ ]] || { echo "not a release tag: $TAG" >&2; exit 1; }
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "REF=refs/tags/$TAG" >> "$GITHUB_ENV"
+            echo "NEW_TAG=" >> "$GITHUB_ENV"
+          else
+            echo "REF=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+            echo "NEW_TAG=1" >> "$GITHUB_ENV"
+          fi
 
       - name: Build the archives
-        # .gitattributes is read from the tagged tree even though it is not shipped,
+        # .gitattributes is read from the released tree even though it is not shipped,
         # so the .cmd/.ps1 files in the zip keep their CRLF line endings
         run: |
-          git archive --format=tar.gz --prefix=splatnet3/ -o splatnet3-stats-setup-linux.tar.gz HEAD -- . \
+          git archive --format=tar.gz --prefix=splatnet3/ -o splatnet3-stats-setup-linux.tar.gz "$REF" -- . \
             ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
             ':!install.ps1' ':!bin/*.cmd' ':!bin/supervise.pyw' ':!config/windows'
-          git archive --format=zip --prefix=splatnet3/ -o splatnet3-stats-setup-windows.zip HEAD -- . \
+          git archive --format=zip --prefix=splatnet3/ -o splatnet3-stats-setup-windows.zip "$REF" -- . \
             ':!.github' ':!.gitattributes' ':!.gitignore' ':!tests' \
             ':!install.sh' ':!systemd' ':!config/linux' \
             ':!bin/stu' ':!bin/stu-headless' ':!bin/stu-s3s' ':!bin/stu-s3s-upstream' ':!bin/stu-sdk'
@@ -31,6 +56,13 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
-          splatnet3-stats-setup-linux.tar.gz splatnet3-stats-setup-windows.zip
+        run: |
+          assets=(splatnet3-stats-setup-linux.tar.gz splatnet3-stats-setup-windows.zip)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # created in the web UI: attach the archives to it
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          elif [ -n "$NEW_TAG" ]; then
+            gh release create "$TAG" --target "$REF" --generate-notes "${assets[@]}"
+          else
+            gh release create "$TAG" --verify-tag --generate-notes "${assets[@]}"
+          fi
