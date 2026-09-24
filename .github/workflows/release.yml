@@ -3,7 +3,7 @@
 # excluded below. Three ways in, all ending with the archives attached:
 #   - push a v* tag
 #   - Actions > release > Run workflow, with a tag: an existing tag is released as is,
-#     a new one is created on the branch picked there
+#     a new one is created on the given commit, or else on the branch picked there
 #   - create the release in GitHub's web UI: its new tag triggers this, which then
 #     attaches the archives to that release and keeps the notes written there
 # The notes list the commits since the previous tag. Run the workflow again on an
@@ -16,8 +16,11 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release, e.g. v1.1.0 (created on the selected branch if it does not exist)'
+        description: 'Tag to release, e.g. v1.1.0 (created if it does not exist)'
         required: true
+      commit:
+        description: 'Commit to create a new tag on (default: the head of the selected branch)'
+        required: false
 
 permissions:
   contents: write
@@ -27,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
+      COMMIT: ${{ inputs.commit }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,7 +43,8 @@ jobs:
             echo "REF=refs/tags/$TAG" >> "$GITHUB_ENV"
             echo "NEW_TAG=" >> "$GITHUB_ENV"
           else
-            echo "REF=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+            ref="$(git rev-parse --verify "${COMMIT:-HEAD}^{commit}")"
+            echo "REF=$ref" >> "$GITHUB_ENV"
             echo "NEW_TAG=1" >> "$GITHUB_ENV"
           fi
 
