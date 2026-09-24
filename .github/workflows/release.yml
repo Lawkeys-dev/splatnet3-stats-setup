@@ -5,7 +5,9 @@
 #   - Actions > release > Run workflow, with a tag: an existing tag is released as is,
 #     a new one is created on the branch picked there
 #   - create the release in GitHub's web UI: its new tag triggers this, which then
-#     attaches the archives to that release
+#     attaches the archives to that release and keeps the notes written there
+# The notes list the commits since the previous tag. Run the workflow again on an
+# existing release to rebuild its archives and notes.
 name: release
 
 on:
@@ -53,16 +55,35 @@ jobs:
             ':!install.sh' ':!systemd' ':!config/linux' \
             ':!bin/stu' ':!bin/stu-headless' ':!bin/stu-s3s' ':!bin/stu-s3s-upstream' ':!bin/stu-sdk'
 
+      - name: Write the notes
+        # the commits since the previous tag, without the "(#N)" GitHub appends to
+        # squash merges
+        run: |
+          prev="$(git describe --tags --abbrev=0 "$REF^" 2>/dev/null || true)"
+          {
+            echo '## Changes'
+            echo
+            git log --no-merges --format='- %s' "${prev:+$prev..}$REF" | sed -E 's/ \(#[0-9]+\)$//'
+            if [ -n "$prev" ]; then
+              echo
+              echo "**Full changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$prev...$TAG"
+            fi
+          } > notes.md
+          cat notes.md
+
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           assets=(splatnet3-stats-setup-linux.tar.gz splatnet3-stats-setup-windows.zip)
           if gh release view "$TAG" >/dev/null 2>&1; then
-            # created in the web UI: attach the archives to it
             gh release upload "$TAG" "${assets[@]}" --clobber
+            # a release created in the web UI keeps its own notes
+            if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+              gh release edit "$TAG" --notes-file notes.md
+            fi
           elif [ -n "$NEW_TAG" ]; then
-            gh release create "$TAG" --target "$REF" --generate-notes "${assets[@]}"
+            gh release create "$TAG" --target "$REF" --notes-file notes.md "${assets[@]}"
           else
-            gh release create "$TAG" --verify-tag --generate-notes "${assets[@]}"
+            gh release create "$TAG" --verify-tag --notes-file notes.md "${assets[@]}"
           fi

@@ -340,6 +340,9 @@ these starts it:
   created on the branch picked there, and an existing one is released as is
 - creating the release in GitHub's web UI: the workflow then attaches the archives to it
 
+The notes list the commits since the previous tag. Running the workflow again on an
+existing release rebuilds its archives and notes.
+
 ## Credits
 
 - [s3s](https://github.com/frozenpandaman/s3s) by frozenpandaman — the uploader
