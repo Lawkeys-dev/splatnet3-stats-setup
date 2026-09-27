@@ -6,7 +6,8 @@
 #     a new one is created on the given commit, or else on the branch picked there.
 #     GitHub refuses the tag when that commit's .github/workflows differ from the
 #     branch's: push such a tag from a git client instead
-#   - create the release in GitHub's web UI: its new tag triggers this, which then
+#   - create the release in GitHub's web UI or with `gh release create`: its tag is made
+#     without a push event, so publishing the release is what triggers this, which then
 #     attaches the archives to that release and keeps the notes written there
 # The notes list the commits since the previous tag. Run the workflow again on an
 # existing release to rebuild its archives and notes.
@@ -15,6 +16,11 @@ name: release
 on:
   push:
     tags: ['v*']
+  # a release made in the web UI or through the API creates its tag without a push event.
+  # The release this workflow creates itself does not trigger it again: events caused by
+  # GITHUB_TOKEN start no workflow
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -27,11 +33,17 @@ on:
 permissions:
   contents: write
 
+# one run per tag at a time: when a tag push and a published release both fire, the second
+# run finds the release made by the first and only refreshes its archives
+concurrency:
+  group: release-${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
       COMMIT: ${{ inputs.commit }}
     steps:
       - uses: actions/checkout@v5

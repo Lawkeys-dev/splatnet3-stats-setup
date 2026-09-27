@@ -365,7 +365,8 @@ these starts it:
   created on the commit given there (by default the head of the branch picked), and an
   existing one is released as is. GitHub only lets the workflow tag a commit whose
   `.github/workflows` match the branch's; tag an older one with `git push` instead
-- creating the release in GitHub's web UI: the workflow then attaches the archives to it
+- creating the release in GitHub's web UI or with `gh release create`: the workflow then
+  attaches the archives to it and keeps the notes written there
 
 The notes list the commits since the previous tag. Running the workflow again on an
 existing release rebuilds its archives and notes.
