@@ -1,0 +1,4 @@
+# cmd.exe misparses batch files with bare LF line endings; check them out as CRLF
+# whatever core.autocrlf says (same for the PowerShell installer)
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

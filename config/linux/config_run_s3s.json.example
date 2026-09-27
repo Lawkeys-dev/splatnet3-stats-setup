@@ -1,0 +1,10 @@
+{
+    "s3s_directory": "__ROOT__/s3s",
+    "s3s_refresh_rc": "42",
+    "s3s_update": true,
+    "stu_update": false,
+    "generated_config_filepath": "config.txt",
+    "git_command": "git",
+    "python_command": "__ROOT__/.venv/bin/python",
+    "pip_command": "__ROOT__/.venv/bin/pip"
+}

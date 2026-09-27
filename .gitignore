@@ -1,0 +1,18 @@
+# upstream projects, cloned by install.sh / install.ps1
+/s3s/
+/splatnet3-token-util/
+
+# shared venv
+/.venv/
+
+# scheduled task output on Windows (supervise.pyw)
+/logs/
+
+# generated tokens - never commit these
+config.txt
+stats.csv
+gear_*.json
+
+# python bytecode
+__pycache__/
+*.pyc
