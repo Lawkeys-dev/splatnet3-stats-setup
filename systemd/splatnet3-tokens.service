@@ -8,6 +8,12 @@ Wants=network-online.target
 # without a terminal Python buffers its output, so the journal would only see it in 8 KB
 # blocks; s3s and stu run as child processes and inherit this
 Environment=PYTHONUNBUFFERED=1
+# the emulator is the only adb target the token util means; a phone visible over
+# wireless adb makes every untargeted `adb shell` fail with "more than one device"
+Environment=ANDROID_SERIAL=emulator-5554
+# same cause, other symptom: with the phone listed, `adb devices` is never empty, so the
+# shutdown step never sees the emulator go away. Must be set where the adb server starts.
+Environment=ADB_MDNS_AUTO_CONNECT=0
 Type=oneshot
 ExecStart=%h/Work/splatnet3/bin/stu-headless
 # the run itself is capped at 50 min by max_run_duration_minutes in config-headless.json
